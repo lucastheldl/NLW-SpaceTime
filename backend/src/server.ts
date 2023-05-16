@@ -8,6 +8,7 @@ app.get("/hello", async() => {
   const users = await prisma.user.findMany()
   return users;
 });
+
 app
   .listen({
     port: 3333,
