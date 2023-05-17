@@ -61,7 +61,7 @@ export default function App() {
           </Text>
         </TouchableOpacity>
       </View>
-      <Text className="text-center font-body text-gray-300 text-sm leading-relaxed text-gray-200">
+      <Text className="text-center font-body text-sm leading-relaxed text-gray-200">
         Feito com amor no NLW.
       </Text>
       <StatusBar style="light" />
