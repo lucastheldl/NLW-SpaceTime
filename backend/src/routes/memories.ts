@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import z from "zod";
 import { prisma } from "../lib/prisma";
-import { request, request } from "http";
+import { request } from "http";
 
 export async function memoriesRoutes(app: FastifyInstance) {
   app.addHook("preHandler", async (request) => {
