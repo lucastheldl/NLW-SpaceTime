@@ -1,10 +1,17 @@
 import { FastifyInstance } from "fastify";
 import z from "zod";
 import { prisma } from "../lib/prisma";
+import { request, request } from "http";
 
 export async function memoriesRoutes(app: FastifyInstance) {
-  app.get("/memories", async () => {
+  app.addHook("preHandler", async (request) => {
+    await request.jwtVerify();
+  });
+  app.get("/memories", async (request) => {
     const memories = await prisma.memory.findMany({
+      where: {
+        userId: request.user.sub,
+      },
       orderBy: {
         CreatedAt: "asc", //ordenar pela mais antiga ate a mais nova
       },
@@ -18,47 +25,50 @@ export async function memoriesRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get("/memories/:id", async (req) => {
+  app.get("/memories/:id", async (request, reply) => {
     //const { id } = req.params;
     //zod valida o id se nao o ts fica puto
     const paramsSchema = z.object({
       id: z.string().uuid(),
     });
-    const { id } = paramsSchema.parse(req.params);
+    const { id } = paramsSchema.parse(request.params);
 
-    const memory = await prisma.user.findUniqueOrThrow({
+    const memory = await prisma.memory.findUniqueOrThrow({
       where: { id },
     }); /*id e o mesmo que id: id */
+    if (!memory.isPublic && memory.userId != request.user.sub) {
+      return reply.status(401).send();
+    }
     return memory;
   });
 
-  app.post("/memories/", async (req) => {
+  app.post("/memories/", async (request) => {
     const bodySchema = z.object({
       content: z.string(),
       coverUrl: z.string(),
       isPublic: z.coerce.boolean().default(false), //coerce torna valores comparaveis a boolean em true ou false
     });
 
-    const { content, coverUrl, isPublic } = bodySchema.parse(req.body);
+    const { content, coverUrl, isPublic } = bodySchema.parse(request.body);
 
     const memory = await prisma.memory.create({
       data: {
         content,
         coverUrl,
         isPublic,
-        userId: "pegar um id do studio",
+        userId: request.user.sub,
       },
     });
 
     return memory;
   });
 
-  app.put("/memories/:id", async (req) => {
+  app.put("/memories/:id", async (request, reply) => {
     const paramsSchema = z.object({
       id: z.string().uuid(),
     });
 
-    const { id } = paramsSchema.parse(req.params);
+    const { id } = paramsSchema.parse(request.params);
 
     const bodySchema = z.object({
       content: z.string(),
@@ -66,9 +76,18 @@ export async function memoriesRoutes(app: FastifyInstance) {
       isPublic: z.coerce.boolean().default(false), //coerce torna valores comparaveis a boolean em true ou false
     });
 
-    const { content, coverUrl, isPublic } = bodySchema.parse(req.body);
+    const { content, coverUrl, isPublic } = bodySchema.parse(request.body);
 
-    const updatedMemory = await prisma.memory.update({
+    let memory = await prisma.memory.findUniqueOrThrow({
+      where: {
+        id,
+      },
+    });
+
+    if (memory?.userId != request.user.sub) {
+      return reply.status(401).send();
+    }
+    memory = await prisma.memory.update({
       where: {
         id,
       },
@@ -79,15 +98,24 @@ export async function memoriesRoutes(app: FastifyInstance) {
       },
     });
 
-    return updatedMemory;
+    return memory;
   });
 
-  app.delete("/memories/:id", async (req) => {
+  app.delete("/memories/:id", async (request, reply) => {
     const paramsSchema = z.object({
       id: z.string().uuid(),
     });
-    const { id } = paramsSchema.parse(req.params);
+    const { id } = paramsSchema.parse(request.params);
 
+    const memory = await prisma.memory.findUniqueOrThrow({
+      where: {
+        id,
+      },
+    });
+
+    if (memory?.userId != request.user.sub) {
+      return reply.status(401).send();
+    }
     await prisma.user.delete({
       where: { id },
     }); /*id e o mesmo que id: id */
