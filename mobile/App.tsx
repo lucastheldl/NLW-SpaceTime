@@ -19,8 +19,17 @@ import Stripes from "./src/assets/stripes.svg";
 import Logo from "./src/assets/logo.svg";
 
 import { styled } from "nativewind";
+import { useAuthRequest, makeRedirectUri } from "expo-auth-session";
+import { useEffect } from "react";
 
 const StyleStripes = styled(Stripes);
+
+const discovery = {
+  authorizationEndpoint: "https://github.com/login/oauth/authorize",
+  tokenEndpoint: "https://github.com/login/oauth/access_token",
+  revocationEndpoint:
+    "https://github.com/settings/connections/applications/2325b6014536822947b0",
+};
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -28,6 +37,23 @@ export default function App() {
     Roboto_700Bold,
     BaiJamjuree_700Bold,
   });
+
+  const [request, response, signInWithGithub] = useAuthRequest(
+    {
+      clientId: "2325b6014536822947b0",
+      scopes: ["identity"],
+      redirectUri: makeRedirectUri({
+        scheme: "nlwspacetime",
+      }),
+    },
+    discovery
+  );
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      const { code } = response.params;
+    }
+  }, [response]);
 
   if (!fontsLoaded) {
     //melhor criar um component abaixo
@@ -56,7 +82,10 @@ export default function App() {
           activeOpacity={0.7}
           className="rounded-full bg-green-500 px-5 py-2"
         >
-          <Text className="font-alt text-sm uppercase text-black">
+          <Text
+            className="font-alt text-sm uppercase text-black"
+            onPress={() => signInWithGithub()}
+          >
             COMEÇAR A CADASTRAR
           </Text>
         </TouchableOpacity>
